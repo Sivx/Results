@@ -1,0 +1,23 @@
+.under
+{
+    text-decoration: none;
+    border-bottom: 1px solid black;
+    font-size: .7em;
+}
+
+.even
+{
+    background-color: #CCC;
+    color: #333;
+}
+
+.odd
+{
+    
+}
+
+.autowidth
+{
+    width: auto;
+    display: inline;
+}

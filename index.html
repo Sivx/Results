@@ -1,0 +1,40 @@
+<!doctype html>
+<html lang="en">
+
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1, shrink-to-fit=no">
+  <link rel="stylesheet" href="bootstrap.min.css" />
+  <link rel="stylesheet" href="style.css" />
+  <link href="angular-moment-picker.min.css" rel="stylesheet">
+  <script src="plotly-latest.min.js"></script>
+  <script src="angular.min.js"></script>
+  <script src="moment.min.js"></script>
+  <script src="angular-moment-picker.min.js"></script>
+  <!--Custom JS Libraries -->
+  <script src="util.js"></script>
+  <script src="charts.js"></script>
+</head>
+
+<body ng-app="app">
+  <!-- Plotly chart will be drawn inside this DIV -->
+  <div id="charts"></div>
+  <div ng-controller="results">
+    <span ng-model="description">Search below:</span>
+    <form onsubmit="return false;" autocomplete="on">
+      <input style="width:100%" ng-model="search" type="text" name="SivxSearch">
+      <input ng-click="Run()" type="submit" Value="Search" />
+      <input class="form-control autowidth" format="l LT" min-view="year" max-view="hour" start-view="hour" ng-model="ctrl.start" ng-model-options="{ updateOn: 'blur' }" placeholder="Start datetime..." moment-picker="ctrl.start">
+      <input class="form-control autowidth" format="l LT" min-view="year" max-view="hour" start-view="hour" ng-model="ctrl.end" ng-model-options="{ updateOn: 'blur' }" placeholder="End datetime..." moment-picker="ctrl.end">
+    </form>
+    <div class="under" ng-show="results_count">
+      {{results_count}} Results
+    </div>
+    <div ng-repeat="x in results track by $index" class="under" ng-class-even="'even'">
+      <span>{{x}}</span>
+    </div>
+  </div>
+  <script src="app.js"></script>
+</body>
+
+</html>
