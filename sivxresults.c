@@ -17,45 +17,29 @@
 #ifndef SIGCLD
 #   define SIGCLD SIGCHLD
 #endif
-    
+
 typedef int bool;
 #define true 1
 #define false 0
 
 #define MAXLINE 1024
-    
+
 struct {
 	char *ext;
 	char *filetype;
 } extensions [] = {
-	{"gif", "image/gif" },  
-	{"jpg", "image/jpeg"}, 
+	{"gif", "image/gif" },
+	{"jpg", "image/jpeg"},
 	{"jpeg","image/jpeg"},
-	{"png", "image/png" },  
-	{"zip", "image/zip" },  
-	{"gz",  "image/gz"  },  
-	{"tar", "image/tar" },  
-	{"htm", "text/html" },  
+	{"png", "image/png" },
+	{"zip", "image/zip" },
+	{"gz",  "image/gz"  },
+	{"tar", "image/tar" },
+	{"htm", "text/html" },
 	{"html","text/html" },
     {"js",  "text/javascript" },
     {"css",  "text/css" },
 	{0,0} };
-    
-struct {
-    char *name;
-} files [] = {
-    {"angular.min.js" },
-    {"index.html"},
-    {"app.js"},
-    {"style.css" },
-    {"bootstrap.min.css" },
-    {"plotly-latest.min.js"},
-    {"moment.min.js"},
-    {"angular-moment-picker.min.js"},
-    {"angular-moment-picker.min.css"},
-    {"charts.js"},
-    {"util.js"},
-    {0} };
 
 void log(int type, char *s1, char *s2, int num)
 {
@@ -64,17 +48,17 @@ void log(int type, char *s1, char *s2, int num)
 
 	switch (type) {
 	case ERROR: (void)sprintf(logbuffer,"ERROR: %s:%s Errno=%d exiting pid=%d",s1, s2, errno,getpid()); break;
-	case SORRY: 
+	case SORRY:
 		(void)sprintf(logbuffer, "<HTML><BODY><H1>nweb Web Server Sorry: %s %s</H1></BODY></HTML>\r\n", s1, s2);
 		(void)write(num,logbuffer,strlen(logbuffer));
-		(void)sprintf(logbuffer,"SORRY: %s:%s",s1, s2); 
+		(void)sprintf(logbuffer,"SORRY: %s:%s",s1, s2);
 		break;
 	case LOG: (void)sprintf(logbuffer," INFO: %s:%s:%d",s1, s2,num); break;
-	}	
+	}
 	/* no checks here, nothing can be done a failure anyway */
 	if((fd = open("nweb.log", O_CREAT| O_WRONLY | O_APPEND,0644)) >= 0) {
-		(void)write(fd,logbuffer,strlen(logbuffer)); 
-		(void)write(fd,"\n",1);      
+		(void)write(fd,logbuffer,strlen(logbuffer));
+		(void)write(fd,"\n",1);
 		(void)close(fd);
 	}
 	if(type == ERROR || type == SORRY) exit(3);
@@ -93,6 +77,17 @@ void url_decode(char* src, char* dest, int max) {
         }
     }
     *dest = '\0';
+}
+
+char* concat(const char *s1, const char *s2)
+{
+    const size_t len1 = strlen(s1);
+    const size_t len2 = strlen(s2);
+    char *result = malloc(len1 + len2 + 1); // +1 for the null-terminator
+    // in real code you would check for errors in malloc here
+    memcpy(result, s1, len1);
+    memcpy(result + len1, s2, len2 + 1); // +1 to copy the null-terminator
+    return result;
 }
 
 /* this is a child web server process, so we can exit on errors */
@@ -151,7 +146,7 @@ void web(int fd, int hit)
             char *temp = NULL;
             unsigned int size = 1;  // start with size of 1 to make room for null terminator
             unsigned int strlength;
-            
+
             while (fgets(buf, sizeof(buf), fp) != NULL) {
                 strlength = strlen(buf);
                 temp = (char*)realloc(str, size + strlength);  // allocate room for the buf that gets appended
@@ -164,10 +159,10 @@ void web(int fd, int hit)
                 size += strlength;
             }
             log(LOG,"SEND Command",undecoded,hit);
-            
+
             (void)sprintf(buffer,"HTTP/1.0 200 OK\r\nContent-Type: text/plain\r\n\r\n");
             (void)write(fd,buffer,strlen(buffer));
-            
+
             char *beginning = str;//resetting point position? is that a thing :)
             unsigned int remain = strlen(beginning);
             char bbuf[MAXLINE];
@@ -194,37 +189,21 @@ void web(int fd, int hit)
                 break;
             }
         }
-        
+
         if(fstr == 0) log(SORRY,"file extension type not supported",buffer,fd);
-        
-        bool allowed_file = false;
-        for(i=0;files[i].name != 0;i++) {
-            len = strlen(files[i].name);
-            if(strncmp(&buffer[6],files[i].name, len))
-            {
-                allowed_file = true;
-                break;
-            }
-        }
-        
-        if(allowed_file)
-        {
-            if(( file_fd = open(&buffer[5],O_RDONLY)) == -1) /* open the file for reading */
-                log(SORRY, "failed to open file",&buffer[5],fd);
-            
-            log(LOG,"SEND",&buffer[5],hit);
-            
-            (void)sprintf(buffer,"HTTP/1.0 200 OK\r\nContent-Type: %s\r\n\r\n", fstr);
-            (void)write(fd,buffer,strlen(buffer));
-            
-            /* send file in 8KB block - last block may be smaller */
-            while ((ret = read(file_fd, buffer, BUFSIZE)) > 0 ) {
-                (void)write(fd,buffer,ret);
-            }
-        }
-        else
-        {
-            log(SORRY,"file not supported",buffer,fd);
+
+        char* s = concat("public/", &buffer[5]);
+        if(( file_fd = open(s,O_RDONLY)) == -1) /* open the file for reading */
+            log(SORRY, "failed to open file",s,fd);
+
+        log(LOG,"SEND",s,hit);
+        free(s);
+        (void)sprintf(buffer,"HTTP/1.0 200 OK\r\nContent-Type: %s\r\n\r\n", fstr);
+        (void)write(fd,buffer,strlen(buffer));
+
+        /* send file in 8KB block - last block may be smaller */
+        while ((ret = read(file_fd, buffer, BUFSIZE)) > 0 ) {
+            (void)write(fd,buffer,ret);
         }
     }
 #ifdef LINUX
