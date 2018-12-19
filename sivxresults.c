@@ -49,14 +49,14 @@ void log(int type, char *s1, char *s2, int num)
 	switch (type) {
 	case ERROR: (void)sprintf(logbuffer,"ERROR: %s:%s Errno=%d exiting pid=%d",s1, s2, errno,getpid()); break;
 	case SORRY:
-		(void)sprintf(logbuffer, "<HTML><BODY><H1>nweb Web Server Sorry: %s %s</H1></BODY></HTML>\r\n", s1, s2);
+		(void)sprintf(logbuffer, "<HTML><BODY><H1>Sivx-Results Web Server Sorry: %s %s</H1></BODY></HTML>\r\n", s1, s2);
 		(void)write(num,logbuffer,strlen(logbuffer));
 		(void)sprintf(logbuffer,"SORRY: %s:%s",s1, s2);
 		break;
 	case LOG: (void)sprintf(logbuffer," INFO: %s:%s:%d",s1, s2,num); break;
 	}
 	/* no checks here, nothing can be done a failure anyway */
-	if((fd = open("nweb.log", O_CREAT| O_WRONLY | O_APPEND,0644)) >= 0) {
+	if((fd = open("zsivxresults.log", O_CREAT| O_WRONLY | O_APPEND,0644)) >= 0) {
 		(void)write(fd,logbuffer,strlen(logbuffer));
 		(void)write(fd,"\n",1);
 		(void)close(fd);
@@ -77,17 +77,6 @@ void url_decode(char* src, char* dest, int max) {
         }
     }
     *dest = '\0';
-}
-
-char* concat(const char *s1, const char *s2)
-{
-    const size_t len1 = strlen(s1);
-    const size_t len2 = strlen(s2);
-    char *result = malloc(len1 + len2 + 1); // +1 for the null-terminator
-    // in real code you would check for errors in malloc here
-    memcpy(result, s1, len1);
-    memcpy(result + len1, s2, len2 + 1); // +1 to copy the null-terminator
-    return result;
 }
 
 /* this is a child web server process, so we can exit on errors */
@@ -192,12 +181,13 @@ void web(int fd, int hit)
 
         if(fstr == 0) log(SORRY,"file extension type not supported",buffer,fd);
 
-        char* s = concat("public/", &buffer[5]);
-        if(( file_fd = open(s,O_RDONLY)) == -1) /* open the file for reading */
-            log(SORRY, "failed to open file",s,fd);
+        char* public_path;// = concat("public/", &buffer[5]);
+        asprintf(&public_path, "%s%s", "public/", &buffer[5])
+        if(( file_fd = open(public_path,O_RDONLY)) == -1) /* open the file for reading */
+            log(SORRY, "failed to open file",public_path,fd);
 
-        log(LOG,"SEND",s,hit);
-        free(s);
+        log(LOG,"SEND",public_path,hit);
+        free(public_path);
         (void)sprintf(buffer,"HTTP/1.0 200 OK\r\nContent-Type: %s\r\n\r\n", fstr);
         (void)write(fd,buffer,strlen(buffer));
 
