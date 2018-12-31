@@ -24,22 +24,49 @@ typedef int bool;
 
 #define MAXLINE 1024
 
-struct {
-	char *ext;
-	char *filetype;
-} extensions [] = {
-	{"gif", "image/gif" },
-	{"jpg", "image/jpeg"},
-	{"jpeg","image/jpeg"},
-	{"png", "image/png" },
-	{"zip", "image/zip" },
-	{"gz",  "image/gz"  },
-	{"tar", "image/tar" },
-	{"htm", "text/html" },
-	{"html","text/html" },
-    {"js",  "text/javascript" },
-    {"css",  "text/css" },
-	{0,0} };
+struct key_value
+{
+   char* key;
+   char* value;
+};
+
+#define MAX_CONFIG_LENGTH 50
+struct key_value extensions[MAX_CONFIG_LENGTH];
+
+char* commands[MAX_CONFIG_LENGTH];
+
+void config(char *filename, struct key_value *set_me)
+{
+	FILE* fp;
+    char  line[255];
+
+    fp = fopen(filename , "r");
+	int x = 0;
+    while (fgets(line, sizeof(line), fp) != NULL)
+    {
+        const char* val1 = strtok(line, "=");
+        const char* val2 = strtok(NULL, "=");
+		set_me[x].key = val1;
+		set_me[x++].value = val2;
+        //printf("%s|%s\n", val1, val2);
+    }
+	set_me[x].key = 0;
+}
+
+void config_list(char *filename, char *set_me)
+{
+	FILE* fp;
+    char  line[255];
+
+    fp = fopen(filename , "r");
+	int x = 0;
+    while (fgets(line, sizeof(line), fp) != NULL)
+    {
+		set_me[x++] = line;
+        printf("%s\n", line);
+    }
+	set_me[x] = 0;
+}
 
 void log(int type, char *s1, char *s2, int num)
 {
@@ -116,8 +143,21 @@ void web(int fd, int hit)
 
 	if( !strncmp(&buffer[0],"GET /\0",6) || !strncmp(&buffer[0],"get /\0",6) ) /* convert no filename to index file */
 		(void)strcpy(buffer,"GET /index.html");
-
-    if(strncmp(&buffer[5],"pcre",strlen("pcre"))==0)
+		
+	int whitelisted = 0;
+	log(LOG,"Testing Whitelist","",sizeof(commands)/sizeof(commands[0]));
+	
+	if(commands[0]!=0)whitelisted=1;
+	//for(i=0;commands[i] != 0&&i<50;i++) {
+		//len = strlen(commands[i]);
+		/*if(strncmp(&buffer[5], commands[i], len)) {
+			whitelisted=1;
+			break;
+		}*/
+		//log(LOG,"Testing Whitelist","",len);
+	//}
+	
+    if(whitelisted==1)
     {
         char* undecoded[strlen(&buffer[5]) + 1];
         url_decode(&buffer[5], &undecoded, BUFSIZE);
@@ -171,10 +211,10 @@ void web(int fd, int hit)
         /* work out the file type and check we support it */
         buflen=strlen(buffer);
         fstr = (char *)0;
-        for(i=0;extensions[i].ext != 0;i++) {
-            len = strlen(extensions[i].ext);
-            if( !strncmp(&buffer[buflen-len], extensions[i].ext, len)) {
-                fstr =extensions[i].filetype;
+        for(i=0;extensions[i].key != 0;i++) {
+            len = strlen(extensions[i].key);
+            if( !strncmp(&buffer[buflen-len], extensions[i].key, len)) {
+                fstr =extensions[i].value;
                 break;
             }
         }
@@ -182,7 +222,7 @@ void web(int fd, int hit)
         if(fstr == 0) log(SORRY,"file extension type not supported",buffer,fd);
 
         char* public_path;// = concat("public/", &buffer[5]);
-        asprintf(&public_path, "%s%s", "public/", &buffer[5])
+        asprintf(&public_path, "%s%s", "public/", &buffer[5]);
         if(( file_fd = open(public_path,O_RDONLY)) == -1) /* open the file for reading */
             log(SORRY, "failed to open file",public_path,fd);
 
@@ -205,6 +245,8 @@ void web(int fd, int hit)
 
 int main(int argc, char **argv)
 {
+	config("mime.cfg", &extensions);
+	config_list("commands.cfg", &commands);
 	int i, port, pid, listenfd, socketfd, hit;
 	size_t length;
 	static struct sockaddr_in cli_addr; /* static = initialised to zeros */
