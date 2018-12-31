@@ -3,3 +3,5 @@ Visualize your logs. This turns raw data into meaning charts and tables.  Allows
 
 make
 then run ".\zsivxresults <port>"
+
+** Requires cygwin for windows
