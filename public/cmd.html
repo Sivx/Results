@@ -1,0 +1,30 @@
+<!doctype html>
+<html lang="en">
+
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1, shrink-to-fit=no">
+  <link rel="stylesheet" href="styles/redis/bootstrap.min.css" />
+  <link rel="stylesheet" href="styles/style.css" />
+  <script src="scripts/redis/angular.min.js"></script>
+</head>
+
+<body ng-app="app_cmd">
+  <!-- Plotly chart will be drawn inside this DIV -->
+  <div ng-controller="cmd">
+    <span ng-model="description">Search below:</span>
+    <form onsubmit="return false;" autocomplete="on">
+      <input style="width:100%" ng-model="command" type="text" name="SivxCommand">
+      <input ng-click="Run()" type="submit" Value="Send" />
+    </form>
+    <div class="under" ng-show="results_count">
+      {{results_count}} Results
+    </div>
+    <div ng-repeat="x in results track by $index" class="under" ng-class-even="'even'">
+      <span>{{x}}</span>
+    </div>
+  </div>
+  <script src="scripts/app_cmd.js"></script>
+</body>
+
+</html>
