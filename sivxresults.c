@@ -18,10 +18,6 @@
 #   define SIGCLD SIGCHLD
 #endif
 
-typedef int bool;
-#define true 1
-#define false 0
-
 #define MAXLINE 1024
 
 struct key_value
@@ -34,17 +30,10 @@ struct key_value
 struct key_value extensions[MAX_CONFIG_LENGTH];
 struct key_value commands[MAX_CONFIG_LENGTH];
 
-static void insert(struct key_value *k, char *key, char *value)
-{
-  k->key = key;
-  k->value = value;
-}
-
 void config(char *filename, struct key_value *set_me)
 {
 	  FILE* fp;
     char  line[255];
-
     fp = fopen(filename , "r");
 	  int x = 0;
     while (fgets(line, sizeof(line), fp) != NULL)
@@ -53,32 +42,27 @@ void config(char *filename, struct key_value *set_me)
       if (len > 0 && line[len-1] == '\n') {
         line[--len] = '\0';
       }
-        const char* val1 = strdup(strtok(line, "="));
-        const char* val2 = strtok(NULL, "=");
+        char* val1 = strdup(strtok(line, "="));
+        char* val2 = strtok(NULL, "=");
         if(val2 !=0)val2=strdup(val2);
-        //printf("%s|%s at index %i\n", val1, val2,x);
         set_me[x].key = val1;
-        set_me[x].value = val2;
-        //insert(&set_me[x],val1,val2);
-        x++;
-        //printf("%s|%s\n", val1, val2);
+        set_me[x++].value = val2;
     }
-	set_me[x].key = 0;
 }
 
-void log(int type, char *s1, char *s2, int num)
+void log_message(int type, char *s1, char *s2, int num)
 {
 	int fd ;
 	char logbuffer[BUFSIZE*2];
 
 	switch (type) {
-	case ERROR: (void)sprintf(logbuffer,"ERROR: %s:%s Errno=%d exiting pid=%d",s1, s2, errno,getpid()); break;
-	case SORRY:
-		(void)sprintf(logbuffer, "<HTML><BODY><H1>Sivx-Results Web Server Sorry: %s %s</H1></BODY></HTML>\r\n", s1, s2);
-		(void)write(num,logbuffer,strlen(logbuffer));
-		(void)sprintf(logbuffer,"SORRY: %s:%s",s1, s2);
-		break;
-	case LOG: (void)sprintf(logbuffer," INFO: %s:%s:%d",s1, s2,num); break;
+  	case ERROR: (void)sprintf(logbuffer,"ERROR: %s:%s Errno=%d exiting pid=%d",s1, s2, errno,getpid()); break;
+  	case SORRY:
+  		(void)sprintf(logbuffer, "<HTML><BODY><H1>Sivx-Results Web Server Sorry: %s %s</H1></BODY></HTML>\r\n", s1, s2);
+  		(void)write(num,logbuffer,strlen(logbuffer));
+  		(void)sprintf(logbuffer,"SORRY: %s:%s",s1, s2);
+  		break;
+  	case LOG: (void)sprintf(logbuffer," INFO: %s:%s:%d",s1, s2,num); break;
 	}
 	/* no checks here, nothing can be done a failure anyway */
 	if((fd = open("zsivxresults.log", O_CREAT| O_WRONLY | O_APPEND,0644)) >= 0) {
@@ -114,7 +98,7 @@ void web(int fd, int hit)
 
 	ret =read(fd,buffer,BUFSIZE); 	/* read Web request in one go */
 	if(ret == 0 || ret == -1) {	/* read failure stop now */
-		log(SORRY,"failed to read browser request","",fd);
+		log_message(SORRY,"failed to read browser request","",fd);
 	}
 	if(ret > 0 && ret < BUFSIZE)	/* return code is valid chars */
 		buffer[ret]=0;		/* terminate the buffer */
@@ -123,10 +107,10 @@ void web(int fd, int hit)
 	for(i=0;i<ret;i++)	/* remove CF and LF characters */
 		if(buffer[i] == '\r' || buffer[i] == '\n')
 			buffer[i]='*';
-	//log(LOG,"request",buffer,hit);
+	//log_message(LOG,"request",buffer,hit);
 
 	if( strncmp(buffer,"GET ",4) && strncmp(buffer,"get ",4) )
-		log(SORRY,"Only simple GET operation supported",buffer,fd);
+		log_message(SORRY,"Only simple GET operation supported",buffer,fd);
 
 	for(i=4;i<BUFSIZE;i++) { /* null terminate after the second space to ignore extra stuff */
 		if(buffer[i] == ' ') { /* string is "GET URL " +lots of other stuff */
@@ -137,7 +121,7 @@ void web(int fd, int hit)
 
 	for(j=0;j<i-1;j++) 	/* check for illegal parent directory use .. */
 		if(buffer[j] == '.' && buffer[j+1] == '.')
-			log(SORRY,"Parent directory (..) path names not supported",buffer,fd);
+			log_message(SORRY,"Parent directory (..) path names not supported",buffer,fd);
 
 	if( !strncmp(&buffer[0],"GET /\0",6) || !strncmp(&buffer[0],"get /\0",6) ) /* convert no filename to index file */
 		(void)strcpy(buffer,"GET /index.html");
@@ -148,7 +132,7 @@ void web(int fd, int hit)
       len = strlen(commands[i].key);
       if(len == 0)break;
       if(strncmp(&buffer[5], commands[i].key, len) == 0) {
-        log(LOG,"Matched Command",commands[i].key,len);
+        log_message(LOG,"Matched Command",commands[i].key,len);
         whitelisted=1;
         break;
       }
@@ -156,14 +140,14 @@ void web(int fd, int hit)
 
     if(whitelisted==1)
     {
-        char* undecoded[strlen(&buffer[5]) + 1];
-        url_decode(&buffer[5], &undecoded, BUFSIZE);
-        log(LOG,"Search request",undecoded,fd);
+        char undecoded[strlen(&buffer[5]) + 1];
+        url_decode(&buffer[5], undecoded, BUFSIZE);
+        log_message(LOG,"Command: ",undecoded,fd);
         FILE *fp;
         /* Open the command for reading. */
         fp = popen(undecoded, "r");
         if (fp == NULL) {
-            log(SORRY,"Command Failed",undecoded,fd);
+            log_message(SORRY,"Command Failed",undecoded,fd);
         }
         else
         {
@@ -177,14 +161,14 @@ void web(int fd, int hit)
                 strlength = strlen(buf);
                 temp = (char*)realloc(str, size + strlength);  // allocate room for the buf that gets appended
                 if (temp == NULL) {
-                    log(SORRY,"Command Failed: Allocation Error.",undecoded,fd);
+                    log_message(SORRY,"Command Failed: Allocation Error.",undecoded,fd);
                 } else {
                     str = temp;
                 }
                 strcpy(str + size - 1, buf);     // append buffer to str
                 size += strlength;
             }
-            log(LOG,"SEND Command",undecoded,hit);
+            log_message(LOG,"SEND Command",undecoded,hit);
 
             (void)sprintf(buffer,"HTTP/1.0 200 OK\r\nContent-Type: text/plain\r\n\r\n");
             (void)write(fd,buffer,strlen(buffer));
@@ -216,14 +200,14 @@ void web(int fd, int hit)
             }
         }
 
-        if(fstr == 0) log(SORRY,"file extension type not supported",buffer,fd);
+        if(fstr == 0) log_message(SORRY,"file extension type not supported",buffer,fd);
 
         char* public_path;// = concat("public/", &buffer[5]);
         asprintf(&public_path, "%s%s", "public/", &buffer[5]);
         if(( file_fd = open(public_path,O_RDONLY)) == -1) /* open the file for reading */
-            log(SORRY, "failed to open file",public_path,fd);
+            log_message(SORRY, "failed to open file",public_path,fd);
 
-        log(LOG,"SEND",public_path,hit);
+        log_message(LOG,"SEND",public_path,hit);
         free(public_path);
         (void)sprintf(buffer,"HTTP/1.0 200 OK\r\nContent-Type: %s\r\n\r\n", fstr);
         (void)write(fd,buffer,strlen(buffer));
@@ -239,13 +223,12 @@ void web(int fd, int hit)
 	exit(1);
 }
 
-
 int main(int argc, char **argv)
 {
 	config("config/mime.cfg", extensions);
 	config("config/commands.cfg", commands);
 	int i, port, pid, listenfd, socketfd, hit;
-	size_t length;
+	socklen_t length;
 	static struct sockaddr_in cli_addr; /* static = initialised to zeros */
 	static struct sockaddr_in serv_addr; /* static = initialised to zeros */
 	/* Become deamon + unstopable and no zombies children (= no wait()) */
@@ -257,26 +240,25 @@ int main(int argc, char **argv)
 	for(i=0;i<32;i++)
 		(void)close(i);		/* close open files */
 	(void)setpgrp();		/* break away from process group */
-    //puts(argv[1]);
-	//log(LOG,"nweb starting",port,getpid());
+	log_message(LOG,"zsivxresults starting",argv[1],getpid());
 	/* setup the network socket */
 	if((listenfd = socket(AF_INET, SOCK_STREAM,0)) <0)
-		log(ERROR, "system call","socket",0);
+		log_message(ERROR, "system call","socket",0);
 	serv_addr.sin_family = AF_INET;
 	serv_addr.sin_addr.s_addr = htonl(INADDR_ANY);
 	serv_addr.sin_port = htons(port);
 	if(bind(listenfd, (struct sockaddr *)&serv_addr,sizeof(serv_addr)) <0)
-		log(ERROR,"system call","bind",0);
+		log_message(ERROR,"system call","bind",0);
 	if( listen(listenfd,64) <0)
-		log(ERROR,"system call","listen",0);
+		log_message(ERROR,"system call","listen",0);
 
 	for(hit=1; ;hit++) {
 		length = sizeof(cli_addr);
 		if((socketfd = accept(listenfd, (struct sockaddr *)&cli_addr, &length)) < 0)
-			log(ERROR,"system call","accept",0);
+			log_message(ERROR,"system call","accept",0);
 
 		if((pid = fork()) < 0) {
-			log(ERROR,"system call","fork",0);
+			log_message(ERROR,"system call","fork",0);
 		}
 		else {
 			if(pid == 0) { 	/* child */
