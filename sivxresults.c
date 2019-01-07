@@ -32,40 +32,38 @@ struct key_value
 
 #define MAX_CONFIG_LENGTH 50
 struct key_value extensions[MAX_CONFIG_LENGTH];
+struct key_value commands[MAX_CONFIG_LENGTH];
 
-char* commands[MAX_CONFIG_LENGTH];
+static void insert(struct key_value *k, char *key, char *value)
+{
+  k->key = key;
+  k->value = value;
+}
 
 void config(char *filename, struct key_value *set_me)
 {
-	FILE* fp;
+	  FILE* fp;
     char  line[255];
 
     fp = fopen(filename , "r");
-	int x = 0;
+	  int x = 0;
     while (fgets(line, sizeof(line), fp) != NULL)
     {
-        const char* val1 = strtok(line, "=");
+      size_t len = strlen(line);
+      if (len > 0 && line[len-1] == '\n') {
+        line[--len] = '\0';
+      }
+        const char* val1 = strdup(strtok(line, "="));
         const char* val2 = strtok(NULL, "=");
-		set_me[x].key = val1;
-		set_me[x++].value = val2;
+        if(val2 !=0)val2=strdup(val2);
+        //printf("%s|%s at index %i\n", val1, val2,x);
+        set_me[x].key = val1;
+        set_me[x].value = val2;
+        //insert(&set_me[x],val1,val2);
+        x++;
         //printf("%s|%s\n", val1, val2);
     }
 	set_me[x].key = 0;
-}
-
-void config_list(char *filename, char *set_me)
-{
-	FILE* fp;
-    char  line[255];
-
-    fp = fopen(filename , "r");
-	int x = 0;
-    while (fgets(line, sizeof(line), fp) != NULL)
-    {
-		set_me[x++] = line;
-        printf("%s\n", line);
-    }
-	set_me[x] = 0;
 }
 
 void log(int type, char *s1, char *s2, int num)
@@ -143,20 +141,19 @@ void web(int fd, int hit)
 
 	if( !strncmp(&buffer[0],"GET /\0",6) || !strncmp(&buffer[0],"get /\0",6) ) /* convert no filename to index file */
 		(void)strcpy(buffer,"GET /index.html");
-		
+
 	int whitelisted = 0;
-	log(LOG,"Testing Whitelist","",sizeof(commands)/sizeof(commands[0]));
-	
-	if(commands[0]!=0)whitelisted=1;
-	//for(i=0;commands[i] != 0&&i<50;i++) {
-		//len = strlen(commands[i]);
-		/*if(strncmp(&buffer[5], commands[i], len)) {
-			whitelisted=1;
-			break;
-		}*/
-		//log(LOG,"Testing Whitelist","",len);
-	//}
-	
+
+  for(i=0;commands[i].key != 0;i++) {
+      len = strlen(commands[i].key);
+      if(len == 0)break;
+      if(strncmp(&buffer[5], commands[i].key, len) == 0) {
+        log(LOG,"Matched Command",commands[i].key,len);
+        whitelisted=1;
+        break;
+      }
+  }
+
     if(whitelisted==1)
     {
         char* undecoded[strlen(&buffer[5]) + 1];
@@ -245,8 +242,8 @@ void web(int fd, int hit)
 
 int main(int argc, char **argv)
 {
-	config("mime.cfg", &extensions);
-	config_list("commands.cfg", &commands);
+	config("config/mime.cfg", extensions);
+	config("config/commands.cfg", commands);
 	int i, port, pid, listenfd, socketfd, hit;
 	size_t length;
 	static struct sockaddr_in cli_addr; /* static = initialised to zeros */
