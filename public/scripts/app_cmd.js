@@ -11,14 +11,6 @@ angular.module('app_cmd', [])
         "\\w+exception|timegroup|timechart"
       ];
       $scope.Run = function() {
-        //if($scope.ctrl && $scope.ctrl.start !== undefined)console.log($scope.ctrl.start);
-        //console.log($scope.ctrl.end);
-        var start = null;
-        var end = null;
-        if ($scope.ctrl) {
-          start = $scope.ctrl.start;
-          end = $scope.ctrl.end;
-        }
         var command = "/" + $scope.command;
         console.log(decodeURIComponent(command));
         $http.get(command)

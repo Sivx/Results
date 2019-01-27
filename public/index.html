@@ -14,6 +14,8 @@
   <!--Custom JS Libraries -->
   <script src="scripts/util.js"></script>
   <script src="scripts/charts.js"></script>
+  <script src="scripts/pcre2grep.js"></script>
+  <script src="scripts/demoquickcommands.js"></script>
 </head>
 
 <body ng-app="app">
@@ -22,17 +24,41 @@
   <div ng-controller="results">
     <span ng-model="description">Search below:</span>
     <form onsubmit="return false;" autocomplete="on">
-      <input style="width:100%" ng-model="search" type="text" name="SivxSearch">
+      <input style="width:100%" ng-model="search" type="text">
       <input ng-click="Run()" type="submit" Value="Search" />
-      <input class="form-control autowidth" format="l LT" min-view="year" max-view="hour" start-view="hour" ng-model="ctrl.start" ng-model-options="{ updateOn: 'blur' }" placeholder="Start datetime..." moment-picker="ctrl.start">
-      <input class="form-control autowidth" format="l LT" min-view="year" max-view="hour" start-view="hour" ng-model="ctrl.end" ng-model-options="{ updateOn: 'blur' }" placeholder="End datetime..." moment-picker="ctrl.end">
+      <label>Timestamps:</label>
+      <input type="checkbox" Value="DateRange" ng-model="DateRange" />
+      <input ng-show="DateRange" class="form-control autowidth" format="l LT" min-view="year" max-view="hour" start-view="hour" ng-model="ctrl.start" ng-model-options="{ updateOn: 'blur' }" placeholder="Start datetime..." moment-picker="ctrl.start">
+      <input ng-show="DateRange" class="form-control autowidth" format="l LT" min-view="year" max-view="hour" start-view="hour" ng-model="ctrl.end" ng-model-options="{ updateOn: 'blur' }" placeholder="End datetime..." moment-picker="ctrl.end">
+      <label>Filetype:</label>
+      <input style="width:100px" ng-model="filetype" type="text">
     </form>
+    <div class="under" ng-hide="results_count">
+      <i>Type the regex you are looking to capture. Then |</br>
+        group - gets the unique count by the first column. If you want graphs, Then |</br>
+        barchart or piechart - for graphs.</br>
+        Examples below.</br></i>
+    </div>
     <div class="under" ng-show="results_count">
       {{results_count}} Results
     </div>
     <div ng-repeat="x in results track by $index" class="under" ng-class-even="'even'">
       <span>{{x}}</span>
     </div>
+    <h2>Quick Commands:</h2>
+    <table>
+      <th>Search Command</th>
+      <th>File Type</th>
+      <th>Start Time</th>
+      <th>End Time</th>
+      <tr ng-repeat="x in QuickCommands track by $index" class="under" ng-class-even="'even'" ng-click="QuickCommand(x)">
+        <td>{{x.search}}</td>
+        <td>{{x.filetype}}</td>
+        <td>{{x.starttime}}</td>
+        <td>{{x.endtime}}</td>
+        <td><a ng-click="DeleteQuickCommand(x)" style="border:1px" href="javascript:void(0)">x</a></td>
+      </tr>
+    </table>
   </div>
   <script src="scripts/app.js"></script>
 </body>
