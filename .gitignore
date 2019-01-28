@@ -54,3 +54,4 @@ dkms.conf
 *.log
 zsivxresults
 .DS_Store
+*.stackdump
