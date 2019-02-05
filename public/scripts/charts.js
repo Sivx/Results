@@ -1,4 +1,4 @@
-function timechart(data) {
+function timechart(id, data) {
   var lines = {};
 
   for (var x = 0; x < data.length - 1; x++) {
@@ -61,7 +61,7 @@ function timechart(data) {
     },
   };
 
-  Plotly.newPlot('charts', arr, layout);
+  Plotly.newPlot(id, arr, layout);
 }
 
 function chart(data, type) {
@@ -82,7 +82,7 @@ function chart(data, type) {
     values.push(split[0]);
     labels.push(split[1]);
   }
-  Plotly.newPlot('charts', [response]);
+  Plotly.newPlot(id, [response]);
   var myPlot = document.getElementById('charts');
   myPlot.on('plotly_click', function(data) {
     console.log(data.points);
@@ -92,10 +92,10 @@ function chart(data, type) {
   });
 }
 
-function piechart(data) {
-  chart(data, 'pie')
+function piechart(id, data) {
+  chart(id, data, 'pie')
 }
 
-function barchart(data) {
-  chart(data, 'bar')
+function barchart(id, data) {
+  chart(id, data, 'bar')
 }

@@ -16,22 +16,60 @@
   <script src="scripts/charts.js"></script>
   <script src="scripts/pcre2grep.js"></script>
   <script src="scripts/demoquickcommands.js"></script>
+  <script src="scripts/demoquickpanels.js"></script>
 </head>
 
 <body ng-app="app">
   <!-- Plotly chart will be drawn inside this DIV -->
-  <div id="charts"></div>
   <div ng-controller="results">
+    <div ng-show="{{x.show}}" ng-repeat="x in open_panels track by $index">
+      <div>
+        <label>Panel: </label>{{x.name}} {{x.has_chart}} {{x.show_chart}}
+        <div ng-show="x.has_chart == true">hi</div>
+      </div>
+      <div style="position: absolute" ng-show="{{x.has_chart}}"> item here
+        <input ng-show="{{x.show_chart}}" type="button" value="Chart" />
+        <input ng-show="{{!x.show_chart}}" type="button" value="Results" />
+      </div>
+      chart
+      <div ng-show="{{x.show_chart}}" id="{{x.id}}_chart"></div>
+      results
+      <div ng-show="{{!x.show_chart}}" id="{{x.id}}_results">
+        <div class="under">
+          {{x.results_count}} Results
+        </div>
+        <div ng-repeat="y in x.results track by $index" class="under" ng-class-even="'even'">
+          <span>{{y}}</span>
+        </div>
+      </div>
+    </div>
+    <div ng-show="modal" id="myModal" class="modal">
+      <!-- Modal content -->
+      <div class="modal-content">
+        <h3><span ng-click="close_modal()" class="close">&times;</span>Create Panel</h3>
+        <label>Name: <input ng-model="modal_panel" type="text" Value="" /></label>
+        <div ng-show="modal_error" style="color:red">Name already exists.</div>
+        <input type="button" Value="Create" ng-click="InsertPanel()" />
+      </div>
+    </div>
+    <div id="charts"></div>
     <span ng-model="description">Search below:</span>
     <form onsubmit="return false;" autocomplete="on">
       <input style="width:100%" ng-model="search" type="text">
       <input ng-click="Run()" type="submit" Value="Search" />
-      <label>Timestamps:</label>
+      <label>Time Series:</label>
       <input type="checkbox" Value="DateRange" ng-model="DateRange" />
       <input ng-show="DateRange" class="form-control autowidth" format="l LT" min-view="year" max-view="hour" start-view="hour" ng-model="ctrl.start" ng-model-options="{ updateOn: 'blur' }" placeholder="Start datetime..." moment-picker="ctrl.start">
       <input ng-show="DateRange" class="form-control autowidth" format="l LT" min-view="year" max-view="hour" start-view="hour" ng-model="ctrl.end" ng-model-options="{ updateOn: 'blur' }" placeholder="End datetime..." moment-picker="ctrl.end">
-      <label>Filetype:</label>
+      <label>Folder:</label>
       <input style="width:100px" ng-model="filetype" type="text">
+      <input ng-click="add_to_panel()" type="button" Value="Add To Panel" />
+      <select ng-change="SelectPanel()" name="singleSelect" id="singleSelect" ng-model="panel_choice">
+        <option ng-repeat="x in Panels track by $index " value="{{x.option}}">{{x.name}}</option>
+        <option value="new" selected>Create New</option>
+      </select>
+      <input ng-click="open_panel()" type="button" Value="Open Panel" />
+      <br>
     </form>
     <div class="under" ng-hide="results_count">
       <i>Type the regex you are looking to capture. Then |</br>
@@ -48,15 +86,23 @@
     <h2>Quick Commands:</h2>
     <table>
       <th>Search Command</th>
-      <th>File Type</th>
+      <th>Folder</th>
       <th>Start Time</th>
       <th>End Time</th>
-      <tr ng-repeat="x in QuickCommands track by $index" class="under" ng-class-even="'even'" ng-click="QuickCommand(x)">
+      <tr ng-repeat="x in QuickCommands | reverse track by $index " class="under" ng-class-even="'even'" ng-click="QuickCommand(x)">
         <td>{{x.search}}</td>
         <td>{{x.filetype}}</td>
         <td>{{x.starttime}}</td>
         <td>{{x.endtime}}</td>
         <td><a ng-click="DeleteQuickCommand(x)" style="border:1px" href="javascript:void(0)">x</a></td>
+      </tr>
+    </table>
+    <h2>Quick Panels:</h2>
+    <table>
+      <th>Name</th>
+      <tr ng-repeat="x in Panels track by $index " class="under" ng-class-even="'even'" ng-click="QuickPanel(x)">
+        <td>{{x.name}}</td>
+        <td><a ng-click="DeletePanel(x)" style="border:1px" href="javascript:void(0)">x</a></td>
       </tr>
     </table>
   </div>

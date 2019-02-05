@@ -9,6 +9,8 @@ var pcre2grep_complete = function(input, output, filetype, start, end) {
     if (x == 0) {
       //base
       var groups = occurrences(pipes[0], "(", false);
+      var end_groups = occurrences(pipes[0], ")", false);
+      if (groups > end_groups) groups = end_groups;
 
       if (pipes.length > 1) {
         var only_matching = false;
@@ -57,7 +59,17 @@ var pcre2grep_complete = function(input, output, filetype, start, end) {
       } else pipes[0] += "./" + filetype;
     } else {
       if (pipes[x].startsWith('group')) {
-        pipes[x] = 'sort | uniq -c | sort -r';
+        var split = pipes[x].split(" ");
+        if (split.length > 1) {
+          var index_builder = ",\" \",$";
+          var build_index = split[1];
+          for (var i = 2; i < split.length; i++) {
+            build_index += index_builder + split[i];
+          }
+          pipes[x] = "gawk '{N[$" + build_index + "]++}END{for(key in N){print N[key], key;}}'|sort -rn";
+        } else {
+          pipes[x] = 'sort | uniq -c | sort -r';
+        }
       }
       if (pipes[x].startsWith('timegroup')) {
         pipes[x] = "gawk '{minute=int((x[2]+2.5)/5)*5;minute=(minute<10)?sprintf(\"0%d\",minute):minute;split($2,x,\":\");N[$1,\" \",x[1],\":\",minute,\":00 \",$3]++}END{for(key in N){print key, N[key];}}'";
